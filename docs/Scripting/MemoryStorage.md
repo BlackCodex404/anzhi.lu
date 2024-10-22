@@ -37,6 +37,10 @@
 
 >如下会通过编写一个排行榜的形式介绍排序映射的接口。
 
+![](https://qn-cdn.233leyuan.com/online/C0I2XDbGu03C1729575709785.gif)
+
+[内存存储排序映射_排行榜_Demo](https://qn-cdn.233leyuan.com/online/cjWxYOfnW5ub1729576667855.rar)
+
 ### 3.1 创建排序映射
 
 ```ts
@@ -120,10 +124,6 @@ async removeData(key: string): Promise<void> {
 }
 ```
 
-::: tip
-如果想要删除多个项，可以用3.5获取项后遍历删除。
-:::
-
 ### 3.5 获取多个项
 
 ```ts
@@ -150,18 +150,51 @@ async getRangeData(): Promise<void> {
 }
 ```
 
+::: tip
+如果想要删除多个项，可以用3.5获取项后遍历删除。
+如下是删除所有的数据的示例，但是实际使用中，你可以直接删除该排序映射，以删除所有的数据。
+:::
+
+```ts
+// 删除所有数据,通过getRangeData获取数据，然后遍历删除
+Event.addClientListener("clearData", (player: Player) => {
+    this.leaderboard.asyncGetRangeData(false, 10).then((result) => {
+        if (result.code == MemoryStorageExtend.MemoryStorageResultCode.Success) {
+            console.log("Get Range Data successfully:");
+            let playerArray = result.array;
+            // 遍历删除数据
+            for (let i = 0; i < result.array.length; i++) {
+                this.leaderboard.asyncRemoveData(result.array[i].key).then((result) => {
+                    if (result == MemoryStorageExtend.MemoryStorageResultCode.Success) {
+                        console.log(`Data removed successfully for ${playerArray[i].key}`);
+                    } else {
+                        console.error(`Failed to remove data for ${playerArray[i].key}, code:`, result);
+                    }
+                });
+            }
+        } else {
+            console.error("Failed to retrieve data, code:", result.code);
+        }
+    });
+});
+```
+
 ### 3.6 获取项排名
 
 ```ts
+/**
+ * 获取单个玩家的排名
+ * @param key 玩家ID
+ */
 @mw.RemoteFunction(mw.Server)
 async getRank(key: string, isAscending: boolean): Promise<void> {
-    let result = await this.leaderboard.asyncGetRank(key, isAscending);
-
-    if (result.code == MemoryStorageExtend.MemoryStorageResultCode.Success) {
-        console.log(`Get Rank successfully for ${key}:`, result.rank, isAscending ? "ascending" : "descending");
-    } else {
-        console.error(`Failed to retrieve rank for ${key}, code:`, result.code);
-    }
+    this.leaderboard.asyncGetRank(key, isAscending).then((result) => {
+        if (result.code == MemoryStorageExtend.MemoryStorageResultCode.Success) {
+            console.log(`Get Rank successfully for ${key}:`, result.rank);
+        } else {
+            console.error(`Failed to retrieve rank for ${key}, code:`, result.code);
+        }
+    });
 }
 ```
 
@@ -199,8 +232,8 @@ export default class QueuingSystem extends Script {
  */
 @mw.RemoteFunction(mw.Server)
 async addPlayerToQueue(playerName: string): Promise<void> {
-    // 入参：项名称，过期时间，优先级
-    let result = await this.playersQueue.asyncAddData(playerName, 600, 0);
+    // 入参：项名称，优先级
+    let result = await this.playersQueue.asyncAddData(playerName);
 
     if (result == MemoryStorageExtend.MemoryStorageResultCode.Success) {
         console.log(`Player ${playerName} added to queue`);
